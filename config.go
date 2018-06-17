@@ -8,8 +8,9 @@ import (
 var config = &configStruct{}
 
 type configStruct struct {
-	environment string
-	cyfeRoot    string
+	environment   string
+	cyfeRoot      string
+	metricLookups []metricTokenLookup
 }
 
 func init() {
@@ -25,4 +26,9 @@ func isProd() (isProd bool) {
 		isProd = true
 	}
 	return
+}
+
+type metricTokenLookup struct {
+	MetricName string
+	Token      string
 }
