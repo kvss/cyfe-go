@@ -3,8 +3,10 @@
 package cyfe
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -30,6 +32,8 @@ type PushOptions struct {
 	YAxisMax          string
 	YAxisShow         bool
 	ShowLabel         bool
+	// Token is available to override a token read from the end point
+	Token string
 }
 
 // PushSendRequest is the formatted request to be sent to the Cyfe server
@@ -49,6 +53,14 @@ type PushSendRequest struct {
 	YAxisMax     *map[string]string  `json:"yaxismax,omitempty"`
 	YAxisShow    *map[string]string  `json:"yaxisshow,omitempty"`
 	LabelShow    *map[string]string  `json:"labelshow,omitempty"`
+	ChartToken   string              `json:"-"`
+}
+
+// APIReturn is the success return from a successful push
+type APIReturn struct {
+	StatusCode int    `json:"statusCode"`
+	Status     string `json:"status"`
+	Message    string `json:"message"`
 }
 
 // Prepare prepares a metric to be sent by filling out all of the options and formatting the data. Currently, you can
@@ -61,6 +73,25 @@ func Prepare(metricLabel, metricValue, keyLabel, keyValue string, options *PushO
 		keyLabel = "Date"
 		keyValue = time.Now().UTC().Format("20060102")
 	}
+	// lookup the chart token; if we can't find it, error
+	chartToken := ""
+	// first, check if there is an override
+	if options != nil && options.Token != "" {
+		chartToken = options.Token
+	} else {
+		for i := range config.metricLookups {
+			if config.metricLookups[i].Metric == metricLabel {
+				chartToken = config.metricLookups[i].Token
+				break
+			}
+		}
+	}
+	if chartToken == "" {
+		err = errors.New("chart token not found for metric " + metricLabel)
+		return
+	}
+	request.ChartToken = chartToken
+
 	// build out the data structure
 	request.Data = []map[string]string{
 		map[string]string{
@@ -147,31 +178,64 @@ func Prepare(metricLabel, metricValue, keyLabel, keyValue string, options *PushO
 
 // JustPush is a simpler Push implementation which uses just the defaults. Useful if you don't like typing and just want to get
 // a metric to the server
-func JustPush(metricLabel, metricValue string) (request *PushSendRequest, err error) {
+func JustPush(metricLabel, metricValue string) (request *PushSendRequest, ret APIReturn, err error) {
 	request, err = Prepare(metricLabel, metricValue, "", "", nil)
-	// todo: push it
+	if err != nil {
+		return
+	}
+	ret, err = Push(request)
 	return
 }
 
 // Push actually makes the push request. NOTE: If the CYFE_ENV environment variable is not set to production, the request is
 // NOT actually sent. This is to prevent accidentally sending metrics in test or development environments.
-func Push(request *PushSendRequest, chartToken string) (err error) {
+func Push(request *PushSendRequest) (ret APIReturn, err error) {
 	if request == nil {
 		err = errors.New("request cannot be nil")
 	}
-	if strings.HasPrefix(chartToken, "/") {
-		chartToken = chartToken[1:]
+	if strings.HasPrefix(request.ChartToken, "/") {
+		request.ChartToken = request.ChartToken[1:]
 	}
 	// is the environment isn't production, we don't make the call
 	if !isProd() {
 		// return as if it was a code call
+		// if the token is set to badtoken, we are likely in a test and want to return an error
+		if request.ChartToken == "badtoken" {
+			ret = APIReturn{
+				Status:     "error",
+				StatusCode: http.StatusBadRequest,
+				Message:    "Invalid widget key",
+			}
+			err = errors.New(ret.Message)
+		} else {
+			ret = APIReturn{
+				Status:     "ok",
+				StatusCode: http.StatusOK,
+				Message:    "Data pushed",
+			}
+		}
 		return
 	}
 	httpRequest, err := resty.R().
 		SetHeader("Accept", "application/json").
 		SetBody(request).
-		Post(fmt.Sprintf("%s%s", config.cyfeRoot, chartToken))
-	fmt.Printf("\n%+v\n%+v\n", httpRequest, err)
+		Post(fmt.Sprintf("%s%s", config.cyfeRoot, request.ChartToken))
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(httpRequest.Body(), &ret)
+	if err != nil {
+		err = errors.New("could not unmarshal the JSON response; check the API")
+		return
+	}
+	ret.StatusCode = httpRequest.StatusCode()
+
+	if httpRequest.StatusCode() != http.StatusOK {
+		// the err should be the parsed message
+		err = errors.New(ret.Message)
+	}
+
 	return
 }
 
