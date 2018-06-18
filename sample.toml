@@ -1,0 +1,7 @@
+[[metric]]
+Metric = "User Signup"
+Token = "abc123"
+
+[[metric]]
+Metric = "User Deleted"
+Token = "123abc"
