@@ -53,6 +53,8 @@ The order of loading is the TOML file first. Then the environment is read and *w
 
 * `CYFE_ENV` set to production to actually make calls
 
+* `CYFE_TIMEZONE` the timezone used for default dates if no key is pushed; leave blank for UTC. Uses timezone database: `CYFE_TIMEZONE=America/New_York`. Any valid timezone from the [go time docs](https://golang.org/pkg/time/#Location) is valid.
+
 * `CYFE_TOKEN_FILE` the name (no path, no extension) of a toml configuration file of metric/chart token pairs (see sample.toml)
 
 * `CYFE_TOKEN_*` after parsing the file (if provided), any `CYFE_TOKEN_*` environment variables will be parsed and added

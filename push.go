@@ -71,7 +71,7 @@ func Prepare(metricLabel, metricValue, keyLabel, keyValue string, options *PushO
 	if keyLabel == "" || (keyLabel == "date" && keyValue == "") {
 		// make the key the current date
 		keyLabel = "Date"
-		keyValue = time.Now().UTC().Format("20060102")
+		keyValue = time.Now().In(config.timezone).Format("20060102")
 	}
 	// lookup the chart token; if we can't find it, error
 	chartToken := ""
