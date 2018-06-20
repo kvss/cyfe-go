@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -14,6 +15,7 @@ type configStruct struct {
 	environment   string
 	cyfeRoot      string
 	metricLookups []metricLookup
+	timezone      *time.Location
 }
 
 type metricLookup struct {
@@ -43,6 +45,13 @@ func setup() (err error) {
 	config.cyfeRoot = "https://app.cyfe.com/api/push/"
 	config.metricLookups = []metricLookup{}
 
+	// set the timezone, since the Push API will expect dates in a specific tmezone
+	loc, err := time.LoadLocation(os.Getenv("CYFE_TIMEZONE"))
+	if err != nil {
+		loc, _ = time.LoadLocation("UTC")
+	}
+	config.timezone = loc
+
 	// each push to the API requires a chart token. The specific metric to specific chart
 	// can come from the file (CYFE_TOKEN_FILE) or can come from the environment
 	// (looping over all CYFE_TOKEN_* environment variables)
@@ -64,7 +73,6 @@ func setup() (err error) {
 			return err
 		}
 		parsed := []metricLookup{}
-		// metrics := viper.Get("metric")
 		err = viper.UnmarshalKey("metric", &parsed)
 		if err != nil || len(parsed) == 0 {
 			//  the config could not be parsed
