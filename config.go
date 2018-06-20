@@ -80,7 +80,6 @@ func setup() (err error) {
 			fmt.Println(err.Error())
 			return err
 		}
-		fmt.Printf("\n%+v\n%+v\n", err, config.metricLookups)
 		config.metricLookups = parsed
 	}
 	// TODO: do we want to consider a default toml file?
