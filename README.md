@@ -66,3 +66,7 @@ We use the following additional tools in this library, and thank the maintainers
 * [testify](https://github.com/stretchr/testify) - Makes our unit tests more readable and management
 
 * [viper](https://github.com/spf13/viper) - Interacting with configurations files made better
+
+## Bugs
+
+There is currently a bug in the Cyfe docs (as of 20180702). The docs mention that if onduplicate is set to replace, it would replace the data instead of accumulating. The behavior we are seeing is that passing anything for the field triggers the replacement, even if we send in a blank string.

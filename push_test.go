@@ -28,7 +28,7 @@ func TestSimplePrepare(t *testing.T) {
 }
 
 func TestAllOptions(t *testing.T) {
-	os.Setenv("CYFE_TOKEN_TestToken", "5b1ec577acf3f8899593214382263")
+	os.Setenv("CYFE_TOKEN_TestToken", "thanks_for_all_the_fish")
 	setup()
 	options := PushOptions{
 		ReplaceInstead:      true,

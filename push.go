@@ -216,6 +216,7 @@ func Push(request *PushSendRequest) (ret APIReturn, err error) {
 		}
 		return
 	}
+
 	httpRequest, err := resty.R().
 		SetHeader("Accept", "application/json").
 		SetBody(request).
@@ -239,11 +240,8 @@ func Push(request *PushSendRequest) (ret APIReturn, err error) {
 	return
 }
 
-// CreateDefaultSendRequest initializes sane defaults for the send request
+// CreateDefaultSendRequest initializes sane defaults for the send request. Right now it does nothing, but
+// could be a place to override basics if needed
 func CreateDefaultSendRequest(metricLabel string) (send *PushSendRequest) {
-	return &PushSendRequest{
-		OnDuplicate: &map[string]string{
-			metricLabel: "duplicate",
-		},
-	}
+	return &PushSendRequest{}
 }
